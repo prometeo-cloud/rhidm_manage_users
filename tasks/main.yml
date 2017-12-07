@@ -1,0 +1,71 @@
+---
+- include_vars: "{{ playbook_dir }}/defaults/main.yml"
+
+- include_vars: "{{ playbook_dir }}/vars/secrets.yml"
+
+- name: Get a kerberos ticket
+  shell: "echo '{{ rhidm_default_password }}' | kinit admin@AMOSDEMO.IO"
+  register: kinit
+
+- name: Configure IPA
+  block:
+    - name: IPA add group admins
+      when: kinit.rc == 0 and projects is defined
+      with_items: "{{ projects }}"
+      command: "kkipa group-add {{ tenant_name|lower|replace('_', '') }}-{{ item.name|lower }}-admins"
+      register: ipacmd
+      failed_when: "'already exists' not in ipacmd.stderr and ipacmd.rc != 0"
+      changed_when: ipacmd.rc == 0
+
+    - name: IPA add Administrative users
+      when: kinit.rc == 0 and projects is defined
+      command: "ipa user-add {{ item.1 | lower | regex_replace('@.*', '') }} --first {{ item.0.name|title }} --last Admin"
+      with_subelements:
+        - "{{ projects }}"
+        - admins
+      register: ipacmd
+      failed_when: "'already exists' not in ipacmd.stderr"
+      changed_when: ipacmd.rc == 0
+
+    - name: IPA add Administrative user to admin group
+      when: kinit.rc == 0 and projects is defined
+      command: "ipa group-add-member {{ tenant_name|lower|replace('_', '') }}-{{ item.0.name|lower }}-admins --users {{ item.1 | lower | regex_replace('@.*', '') }}"
+      with_subelements:
+        - "{{ projects }}"
+        - admins
+      register: ipacmd
+      failed_when: "'This entry is already a member' not in ipacmd.stdout"
+      changed_when: ipacmd.rc == 0
+
+    - name: IPA add group users
+      when: kinit.rc == 0 and projects is defined
+      command: "ipa group-add {{ tenant_name|lower|replace('_', '') }}-{{ item.name|lower }}-users"
+      with_items: "{{ projects }}"
+      register: ipacmd
+      failed_when: "'already exists' not in ipacmd.stderr and ipacmd.rc != 0"
+      changed_when: ipacmd.rc == 0
+
+    - name: IPA add users
+      when: kinit.rc == 0 and projects is defined
+      command: "ipa user-add {{ item.1 | lower | regex_replace('@.*', '') }} --first {{ item.0.name|title }} --last User"
+      with_subelements:
+        - "{{ projects }}"
+        - users
+      register: ipacmd
+      failed_when: "'already exists' not in ipacmd.stderr and ipacmd.rc != 0"
+      changed_when: ipacmd.rc == 0
+
+    - name: IPA add user to user group
+      when: kinit.rc == 0 and projects is defined
+      command: "ipa group-add-member {{ tenant_name|lower|replace('_', '') }}-{{ item.0.name|lower }}-users --users {{ item.1 | lower | regex_replace('@.*', '') }}"
+      with_subelements:
+        - "{{ projects }}"
+        - users
+      register: ipacmd
+      failed_when: "'This entry is already a member' not in ipacmd.stdout and ipacmd.rc != 0"
+      changed_when: ipacmd.rc == 0
+  always:
+    - name: Destroy ticket
+      command: kdestroy
+      when: kinit.rc == 0
+      ignore_errors: true
