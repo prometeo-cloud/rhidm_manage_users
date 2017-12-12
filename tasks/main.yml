@@ -24,7 +24,7 @@
         - "{{ projects }}"
         - admins
       register: ipacmd
-      failed_when: "'already exists' not in ipacmd.stderr"
+      failed_when: "'already exists' not in ipacmd.stderr and ipacmd.rc != 0"
       changed_when: ipacmd.rc == 0
 
     - name: IPA add Administrative user to admin group
@@ -34,7 +34,7 @@
         - "{{ projects }}"
         - admins
       register: ipacmd
-      failed_when: "'This entry is already a member' not in ipacmd.stdout"
+      failed_when: "'This entry is already a member' not in ipacmd.stdout and ipacmd.rc != 0"
       changed_when: ipacmd.rc == 0
 
     - name: IPA add group users
