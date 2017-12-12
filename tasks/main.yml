@@ -12,7 +12,7 @@
     - name: IPA add group admins
       when: kinit.rc == 0 and projects is defined
       with_items: "{{ projects }}"
-      command: "kkipa group-add {{ tenant_name|lower|replace('_', '') }}-{{ item.name|lower }}-admins"
+      command: "ipa group-add {{ tenant_name|lower|replace('_', '') }}-{{ item.name|lower }}-admins"
       register: ipacmd
       failed_when: "'already exists' not in ipacmd.stderr and ipacmd.rc != 0"
       changed_when: ipacmd.rc == 0
