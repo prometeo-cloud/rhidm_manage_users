@@ -1,4 +1,11 @@
 ---
+- name: Check if secrets.yml exists
+  stat: path="{{ playbook_dir }}/vars/secrets.yml"
+  register: import_secrets_from_vars
+
+- include_vars: "{{ playbook_dir }}/vars/secrets.yml"
+  when: import_secrets_from_vars.stat.exists == True
+
 - name: Get a kerberos ticket
   shell: "echo '{{ rhidm_default_password }}' | kinit admin@AMOSDEMO.IO"
   register: kinit
