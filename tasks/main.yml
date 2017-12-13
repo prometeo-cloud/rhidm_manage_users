@@ -1,8 +1,4 @@
 ---
-- include_vars: "{{ playbook_dir }}/defaults/main.yml"
-
-- include_vars: "{{ playbook_dir }}/vars/secrets.yml"
-
 - name: Get a kerberos ticket
   shell: "echo '{{ rhidm_default_password }}' | kinit admin@AMOSDEMO.IO"
   register: kinit
